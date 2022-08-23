@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 python main.py --stdgi_noise_min 0.4 --stdgi_noise_max 0.8 --name " " --en_hid1 64 --en_hid2 64 --num_epochs_stdgi 1 --dataset "beijing"  --log_wandb --features "PM2.5,PM10"

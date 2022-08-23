@@ -1,0 +1,7 @@
+**/__pycache__/
+.vscode-upload.json
+wandb/
+out/
+data/
+output/
+*.ipynb
