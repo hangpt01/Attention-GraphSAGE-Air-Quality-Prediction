@@ -20,7 +20,7 @@ class TGCN_Encoder(nn.Module):
         list_h = []
         for i in range(raw_shape[1]):
             x_i = x[:,i,:,:].squeeze(1) # 1, 19, 200 
-            e = adj[:,i,:,:].squeeze(1) # 1, 19, 19
+            e = adj[:,:,:].squeeze(1) # 1, 19, 19
             h = self.rnn_gcn(x_i, e, h)
             list_h.append(h)
         h_ = torch.stack(list_h, dim=1)
