@@ -239,17 +239,12 @@ class AQDataSet(Dataset):
                 set(self.list_cols_train_int) - set([self.list_cols_train_int[-1]])
             )
             self.X_test = data_df[idx_test:, lst_cols_input_test_int, :]
-            lst_angle = self.get_list_angles(test_station, lst_cols_input_test_int)
-            if self.use_wind:
-                impact_wind = self.convert_wind(self.X_test, lst_angle)
-                self.X_test[:, :, -1] = impact_wind
-
             self.l_test = self.get_inverse_distance_matrix(
                 lst_cols_input_test_int, test_station
             )
             self.Y_test = data_df[idx_test:, test_station, :]
             self.climate_test = climate_df[idx_test:, test_station, :]
-            self.G_test,nb_adj = self.get_adjacency_matrix(lst_cols_input_test_int)
+            self.G_test,self.nb_adj = self.get_adjacency_matrix(lst_cols_input_test_int)
         elif self.valid:
             # phan data test khong lien quan gi data train
             test_station = int(test_station)
@@ -258,18 +253,13 @@ class AQDataSet(Dataset):
                 set(self.list_cols_train_int) - set([self.list_cols_train_int[-1]])
             )
             self.X_test = data_df[:idx_test, lst_cols_input_test_int, :]
-            lst_angle = self.get_list_angles(test_station, lst_cols_input_test_int)
             # convert data gio theo target station
-            if self.use_wind:
-                impact_wind = self.convert_wind(self.X_test, lst_angle)
-                self.X_test[:, :, -1] = impact_wind
-
             self.l_test = self.get_inverse_distance_matrix(
                 lst_cols_input_test_int, test_station
             )
             self.Y_test = data_df[:idx_test, test_station, :]
             self.climate_test = climate_df[:idx_test, test_station, :]
-            self.G_test,nb_adj = self.get_adjacency_matrix(lst_cols_input_test_int)
+            self.G_test,self.nb_adj = self.get_adjacency_matrix(lst_cols_input_test_int)
 
     def get_list_angles(self, test_stat, list_stat):
         target_stat = tuple(self.location[test_stat, :])
@@ -338,6 +328,7 @@ class AQDataSet(Dataset):
             ]
             y = self.Y_test[idx + self.sequence_length - 1 + self.window_size, 0]
             G = self.G_test
+            nb_adj = self.nb_adj
             l = self.l_test
             climate = self.climate_test[
                 idx + self.sequence_length - 1 + self.window_size, :
@@ -349,6 +340,7 @@ class AQDataSet(Dataset):
                 idx + self.window_size : idx + self.sequence_length + self.window_size,
                 :,
             ]
+            nb_adj = self.nb_adj
             y = self.Y_test[idx + self.sequence_length - 1 + self.window_size, 0]
             G = self.G_test
             l = self.l_test

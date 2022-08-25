@@ -126,7 +126,7 @@ if __name__ == "__main__":
     
     trans_df, climate_df, scaler = preprocess_pipeline(comb_arr, args)
     # breakpoint()
-    trans_df = trans_df[:200]
+    # trans_df = trans_df[:200]
     config["features"] = features_name
     test_name = "test1"
     if args.dataset == "beijing":
@@ -257,12 +257,11 @@ if __name__ == "__main__":
                     data_df=trans_df[:],
                     climate_df=climate_df,
                     location_df=location_,
-                    list_train_station=args.train_station,
+                    dist_matrix=dist_matrix,
+                    corr_matrix=list_corr[0],
                     test_station=valid_station,
                     valid=True,
-                    input_dim=args.sequence_length,
                     # output_dim=args.output_dim,
-                    corr=corr,
                     args=args,
                 )
                 valid_dataloader = DataLoader(
@@ -303,12 +302,10 @@ if __name__ == "__main__":
             data_df=trans_df,
             climate_df=climate_df[:],
             location_df=location_,
-            list_train_station=args.train_station,
             test_station=test_station,
+            dist_matrix=dist_matrix,
+            corr_matrix=list_corr[0],
             test=True,
-            input_dim=args.sequence_length,
-            # output_dim=args.output_dim,
-            corr=corr,
             args=args,
         )
         test_dataloader = DataLoader(
