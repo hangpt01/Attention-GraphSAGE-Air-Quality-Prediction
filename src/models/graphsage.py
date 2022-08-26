@@ -27,7 +27,7 @@ class GraphSage(nn.Module):
             #norm2 h
         return h
 
-    def inductive(self,H,l,G):
+    def inductive(self,H,G):
         """
         h: [batch_size,n_stas,n_fts]
         l: [batch_size,n_stas]
@@ -37,28 +37,16 @@ class GraphSage(nn.Module):
         list_h = []
         for _ in range(H.shape[1]):
             h = H[:,_,:,:]
-            knn_station = torch.argsort(l.squeeze(), -1)[:, -3:]
-            mask = torch.zeros_like(l, dtype=torch.int32)
-            for j in range(l.shape[0]):
-                for i in knn_station[j]:
-                    mask[j, i] = 1
-
             h = self.activation(self.fc(h))
-            idw_vector = torch.bmm(l.unsqueeze(1),h)
-            h_x = idw_vector
             for i in range(self.k):
                 attn_score = self.aggregator(self.w_key[i](h),self.w_query[i](h),G)
                 h_kn = torch.bmm(attn_score,self.w_value[i](h))
                 h_ = self.w_k[i](torch.concat((h,h_kn),dim=-1))
-
-                h_x_attn_score = self.aggregator(self.w_key[i](h),self.w_query[i](h_x),mask.unsqueeze(1))
-                h_kn_x = torch.bmm(h_x_attn_score,self.w_value[i](h))
-                h_x = self.activation(self.w_k[i](torch.concat((h_x,h_kn_x),dim=-1)))
-
                 h = self.activation(h_)
-            list_h.append(h_x.squeeze())
+            list_h.append(h.squeeze())
         #norm 2 h,h_x
         return torch.stack(list_h,1)
+
 
 class DotProductAttention(nn.Module):
     def __init__(self):

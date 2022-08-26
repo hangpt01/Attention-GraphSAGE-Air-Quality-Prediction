@@ -98,7 +98,8 @@ if __name__ == "__main__":
         args.error(str(msg))
 
     config_seed(args.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     args.group_name = "Tuning_Features_merged_AQ_{}".format(args.dataset)
     args.features = args.features.split(",")
     args.idx_climate = len(args.features)

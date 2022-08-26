@@ -22,7 +22,6 @@ def train_stdgi(stdgi, dataloader, optim_e, optim_d, criterion, device, n_steps=
             d_loss = criterion(output, lbl)
             d_loss.backward()
             optim_d.step()
-
         optim_e.zero_grad()
         x = data["X"][:,-1,:,:].to(device).float()
         G = data["G2"].to(device).float()
@@ -50,8 +49,8 @@ def train_atten_decoder_fn(stdgi, decoder, dataloader, criterion, optimizer, dev
         G = data["G2"].to(device).float()
         l = data["l"].to(device).float()
         # breakpoint()
-        h = stdgi.encoder.inductive(x,l.squeeze(),G)
-        y_prd = decoder(h)
+        h = stdgi.encoder.inductive(x,G)
+        y_prd = decoder(h,l.squeeze())
         # breakpoint()
         batch_loss = criterion(torch.squeeze(y_prd), torch.squeeze(y_grt))
         batch_loss.backward()

@@ -93,7 +93,7 @@ def preprocess_pipeline(df, args, scaler=None):
     idx_climate = len(args.features)
     climate_df = res_climate[
         :, :, idx_climate:
-    ]  # bo feature cuoi vi k quan tam huong gio
+    ]
     del res_aq
     del res_climate
     del res
