@@ -14,7 +14,6 @@ def train_stdgi(stdgi, dataloader, optim_e, optim_d, criterion, device, n_steps=
             optim_d.zero_grad()
             d_loss = 0
             x = data["X"][:,-1,:,:].to(device).float()
-            # breakpoint()
             G = data["G2"].to(device).float()
             output = stdgi(x, x, G)
             lbl_1 = torch.ones(output.shape[0], output.shape[1], 1)

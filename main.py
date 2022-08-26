@@ -32,7 +32,7 @@ def parse_args():
         type=list,
     )
     # Config STDGI
-    parser.add_argument("--k",type=int,default=3)
+    parser.add_argument("--k",type=int,default=2)
     parser.add_argument("--input_dim", default=9, type=int)
     parser.add_argument("--output_dim", default=1, type=int)
     parser.add_argument("--sequence_length", default=12, type=int)
@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument("--dist_threshold", type=float,default=20)
     parser.add_argument("--corr_threshold",type=float,default=0.7)
     parser.add_argument("--type_g",type=int,default=1,choices=[1,2,3,4])
-    parser.add_argument("--lr_decoder", default=0.001, type=float)
+    parser.add_argument("--lr_decoder", default=0.0001, type=float)
     parser.add_argument("--delta_decoder", default=0, type=float)
     parser.add_argument("--n_layers_rnn", default=1, type=int)
     parser.add_argument(

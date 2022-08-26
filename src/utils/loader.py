@@ -73,12 +73,11 @@ def get_columns(file_path):
 def preprocess_pipeline(df, args, scaler=None):
     (a, b, c) = df.shape
     res = np.reshape(df, (-1, c))
-    threshold_ = [90, 90, 30]
+    # threshold_ = [90, 90, 30]
     for i in range(c):
-        threshold = np.percentile(res[:, i], 90)
-        threshold = threshold_[i]
+        threshold = np.percentile(res[:, i], 95)
+        # threshold = threshold_[i]
         res[:, i] = np.where(res[:, i] > threshold, threshold, res[:, i])
-    # exit()
     if scaler == None:
         scaler = MinMaxScaler((-1, 1))
         res_ = scaler.fit_transform(res)
