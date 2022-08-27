@@ -163,7 +163,7 @@ if __name__ == "__main__":
     if args.log_wandb:
         wandb.init(
             entity="aiotlab",
-            project="Spatial_PM2.5",
+            project="Spatial_PM2.5_GraphSage",
             group="Features_merged_AQ_{}".format(args.dataset),
             name=f"{args.name}",
             config=config,
@@ -298,6 +298,12 @@ if __name__ == "__main__":
     print(dec_train_loss, dec_val_loss)
     visualize_train_val(dec_train_loss, dec_val_loss)
     load_model(decoder, f"output/{args.group_name}/checkpoint/decoder_{args.name}.pt")
+
+    min_dec_val_loss = min(dec_val_loss)
+    if args.log_wandb:
+        wandb.log({'min_val_loss': min_dec_val_loss})
+    print(min_dec_val_loss)
+    # return min_dec_val_loss
 
     if args.log_wandb:
         wandb.run.summary["best_loss_decoder"] = early_stopping_decoder.best_score
