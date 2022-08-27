@@ -6,7 +6,7 @@ import torch as torch
 class Decoder(nn.Module):
     def __init__(self,hid_ft,n_rnns,):
         super(Decoder, self).__init__()
-        self.gru = nn.GRU(input_size=hid_ft,hidden_size=hid_ft,batch_first=True, num_layers=n_rnns)
+        self.gru = nn.LSTM(input_size=hid_ft,hidden_size=hid_ft,batch_first=True, num_layers=n_rnns)
         self.linear = nn.Linear(hid_ft,1)
         self.activation = nn.ReLU()
 
