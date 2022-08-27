@@ -10,10 +10,10 @@ import torch.nn as nn
 import numpy as np
 import random
 from tqdm import tqdm
-
+from datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
-from src.utils.utils import config_seed, load_model, EarlyStopping
+from src.utils.utils import config_seed, load_model, EarlyStopping, visualize_train_val, save_result
 from src.utils.loader import get_data_array, preprocess_pipeline, AQDataSet
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument("--dist_threshold", type=float,default=20)
     parser.add_argument("--corr_threshold",type=float,default=0.7)
     parser.add_argument("--type_g",type=int,default=1,choices=[1,2,3,4])
-    parser.add_argument("--lr_decoder", default=0.0001, type=float)
+    parser.add_argument("--lr_decoder", default=0.00005, type=float)
     parser.add_argument("--delta_decoder", default=0, type=float)
     parser.add_argument("--n_layers_rnn", default=1, type=int)
     parser.add_argument(
@@ -239,6 +239,9 @@ if __name__ == "__main__":
     #     stdgi_optimizer, "min", factor=0.5, patience=3
     # )
 
+    dec_train_loss = []
+    dec_val_loss = []
+
     for i in range(args.num_epochs_decoder):
         if not early_stopping_decoder.early_stop:
             # uncomment
@@ -281,6 +284,7 @@ if __name__ == "__main__":
                 )
                 valid_loss += valid_loss_
             valid_loss = valid_loss / len(args.valid_station)
+            # print(train_loss, valid_loss)
             early_stopping_decoder(valid_loss, decoder)
             print(
                 "Epochs/Loss: {}/Train loss: {} / Valid loss: {}".format(
@@ -289,6 +293,10 @@ if __name__ == "__main__":
             )
             if args.log_wandb:
                 wandb.log({"loss/decoder_loss": train_loss})
+            dec_train_loss.append(train_loss.item())
+            dec_val_loss.append(valid_loss)
+    print(dec_train_loss, dec_val_loss)
+    visualize_train_val(dec_train_loss, dec_val_loss)
     load_model(decoder, f"output/{args.group_name}/checkpoint/decoder_{args.name}.pt")
 
     if args.log_wandb:
@@ -344,7 +352,11 @@ if __name__ == "__main__":
         np.array(list_acc),
         columns=["STATION", "MAE", "MSE", "MAPE", "MDAPE", "RMSE", "R2", "CORR"],
     )
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    df.insert(0, "DATE", dt_string, allow_duplicates=False)
     print(df)
+    save_result(df)
     if args.log_wandb:
         wandb.log({"test_acc": df})
     for test_station in args.test_station:
