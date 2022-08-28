@@ -49,7 +49,7 @@ def parse_args():
     parser.add_argument("--stdgi_noise_min", default=0.4, type=float)
     parser.add_argument("--stdgi_noise_max", default=0.7, type=float)
     # Config Decoder
-    parser.add_argument("--num_epochs_decoder",type=int,default=1)
+    parser.add_argument("--num_epochs_decoder",type=int,default=100)
     parser.add_argument("--train_pct", default=0.6, type=float)
     parser.add_argument("--valid_pct", default=0.25, type=float)
     parser.add_argument("--test_pct", default=0.15, type=float)
@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument("--dist_threshold", type=float,default=20)
     parser.add_argument("--corr_threshold",type=float,default=0.7)
     parser.add_argument("--type_g",type=int,default=1,choices=[1,2,3,4])
-    parser.add_argument("--lr_decoder", default=0.00005, type=float)
+    parser.add_argument("--lr_decoder", default=0.00001, type=float)
     parser.add_argument("--delta_decoder", default=0, type=float)
     parser.add_argument("--n_layers_rnn", default=1, type=int)
     parser.add_argument(
@@ -299,10 +299,10 @@ if __name__ == "__main__":
     visualize_train_val(dec_train_loss, dec_val_loss)
     load_model(decoder, f"output/{args.group_name}/checkpoint/decoder_{args.name}.pt")
 
-    min_dec_val_loss = min(dec_val_loss)
-    if args.log_wandb:
-        wandb.log({'min_val_loss': min_dec_val_loss})
-    print(min_dec_val_loss)
+    # min_dec_val_loss = min(dec_val_loss)
+    # if args.log_wandb:
+    #     wandb.log({'min_val_loss': min_dec_val_loss})
+    # print(min_dec_val_loss)
     # return min_dec_val_loss
 
     if args.log_wandb:

@@ -47,10 +47,16 @@ def test_atten_decoder_fn(
             list_grt += y_grt
             epoch_loss += batch_loss.item()
     if test:
+        # breakpoint()
         a_max = scaler.data_max_[0]
         a_min = scaler.data_min_[0]
-        list_grt = (np.array(list_grt) + 1) / 2 * (a_max - a_min) + a_min
-        list_prd = (np.array(list_prd) + 1) / 2 * (a_max - a_min) + a_min
+        min_ = scaler.feature_range[0]
+        max_ = scaler.feature_range[1]
+        scale_ = scaler.scale_[0]
+        list_grt = (np.array(list_grt) - min_) /scale_ + a_min
+        list_prd = (np.array(list_prd) - min_) /scale_ + a_min
+        # list_grt = (np.array(list_grt) + 1) / 2 * (a_max - a_min) + a_min
+        # list_prd = (np.array(list_prd) + 1) / 2 * (a_max - a_min) + a_min
         list_grt_ = [float(i) for i in list_grt]
         list_prd_ = [float(i) for i in list_prd]
         return list_prd_, list_grt_, epoch_loss / len(dataloader)

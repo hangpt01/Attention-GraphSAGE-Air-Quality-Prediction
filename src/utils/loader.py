@@ -70,32 +70,75 @@ def get_columns(file_path):
     return res, res_rev, pm_df
 
 
+# def preprocess_pipeline(df, args, scaler=None):
+#     (a, b, c) = df.shape
+#     res = np.reshape(df, (-1, c))
+#     # threshold_ = [90, 90, 30]
+#     for i in range(c):
+#         threshold = np.percentile(res[:, i], 95)
+#         # threshold = threshold_[i]
+#         res[:, i] = np.where(res[:, i] > threshold, threshold, res[:, i])
+#     if scaler == None:
+#         scaler = MinMaxScaler((-1, 1))
+#         res_ = scaler.fit_transform(res)
+#     else:
+#         res_ = scaler.transform(res)
+#     res_aq = res_.copy()
+#     res_climate = res_.copy()
+#     if args.use_wind:
+#         res_aq[:, -1] = res[:, -1]
+#     res_aq = np.reshape(res_aq, (-1, b, c))
+#     res_climate = np.reshape(res_climate, (-1, b, c))
+#     trans_df = res_aq[:, :, :]
+#     idx_climate = len(args.features)
+#     climate_df = res_climate[
+#         :, :, idx_climate:
+#     ]  # bo feature cuoi vi k quan tam huong gio
+#     del res_aq
+#     del res_climate
+#     del res
+#     return trans_df, climate_df, scaler
+
 def preprocess_pipeline(df, args, scaler=None):
+    # 800,35,17
+    # import pdb; pdb.set_trace()
+    # breakpoint()
     (a, b, c) = df.shape
     res = np.reshape(df, (-1, c))
-    # threshold_ = [90, 90, 30]
     for i in range(c):
         threshold = np.percentile(res[:, i], 95)
-        # threshold = threshold_[i]
         res[:, i] = np.where(res[:, i] > threshold, threshold, res[:, i])
+    # res = np.reshape(res, (-1, b,c))
+    # breakpoint()
     if scaler == None:
-        scaler = MinMaxScaler((-1, 1))
+        # scaler = MinMaxScaler((-1, 1))
+        scaler = MinMaxScaler()
         res_ = scaler.fit_transform(res)
     else:
         res_ = scaler.transform(res)
+    # res_ = scaler.fit_transform(res)
+    # gan lai wind_angle cho scaler
     res_aq = res_.copy()
     res_climate = res_.copy()
     if args.use_wind:
-        res_aq[:, -1] = res[:, -1]
+        res_aq[:,-1] = res[:,-1]
+
     res_aq = np.reshape(res_aq, (-1, b, c))
     res_climate = np.reshape(res_climate, (-1, b, c))
-    trans_df = res_aq[:, :, :]
-    idx_climate = len(args.features)
-    climate_df = res_climate[
-        :, :, idx_climate:
-    ]  # bo feature cuoi vi k quan tam huong gio
+    # res = np.reshape(res, (-1, b, c))
+    idx_climate = args.idx_climate
+    trans_df = res_aq[:, :, :idx_climate]
+    # if args.dataset == "uk":
+    #     idx_climate =5 
+    # elif args.dataset == "hanoi":
+    #     idx_climate = 1
+    # elif args.dataset == "beijing":
+    #     idx_climate = 7
+    # else:
+    #     raise ValueError("Dataset not supported")
+    climate_df = res_climate[:, :, idx_climate:] # bo feature cuoi vi k quan tam huong gio
     del res_aq
-    del res_climate
+    del res_climate 
     del res
     return trans_df, climate_df, scaler
 
