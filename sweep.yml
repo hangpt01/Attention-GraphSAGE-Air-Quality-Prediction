@@ -1,0 +1,16 @@
+program: main.py
+method: grid
+metric:
+  name: min_dec_val_loss
+  goal: minimize
+parameters:
+  lr_stdgi: 
+    values: [0.001, 0.0005, 0.0001] 
+  en_hid1: 
+    values: [32, 64, 128]
+  # en_hid1: 
+  #   values: [32, 64]
+  lr_decoder:
+    values: [0.001, 0.0005, 0.0001, 0.00005]
+  k:
+    values: [2, 3, 4]

@@ -1,4 +1,5 @@
 # from builtins import breakpoint
+from builtins import breakpoint
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.preprocessing import (
     OneHotEncoder,
@@ -25,6 +26,25 @@ import torch
 import random
 import numpy as np
 import pandas as pd
+import geopy.distance
+from os import listdir
+from os.path import isfile, join
+
+
+def get_distance(coords_1, coords_2):
+    return geopy.distance.geodesic(coords_1, coords_2).km
+
+
+def get_distance_matrix(list_col_train_int, location):
+    m_ = []
+    for target_station in list_col_train_int:
+        matrix = []
+        for i in list_col_train_int:
+            matrix.append(get_distance(location[i], location[target_station]))
+        res = np.array(matrix)
+        m_.append(res)
+    return np.array(m_)
+
 
 # chi su dung data PM truoc
 def get_columns(file_path):
@@ -50,34 +70,37 @@ def get_columns(file_path):
     return res, res_rev, pm_df
 
 
-# preprocess pipeline
-def to_numeric(x):
-    x_1 = x.apply(pd.to_numeric, errors="coerce")
-    res = x_1.clip(lower=0)
-    return res
+# def preprocess_pipeline(df, args, scaler=None):
+#     (a, b, c) = df.shape
+#     res = np.reshape(df, (-1, c))
+#     # threshold_ = [90, 90, 30]
+#     for i in range(c):
+#         threshold = np.percentile(res[:, i], 95)
+#         # threshold = threshold_[i]
+#         res[:, i] = np.where(res[:, i] > threshold, threshold, res[:, i])
+#     if scaler == None:
+#         scaler = MinMaxScaler((-1, 1))
+#         res_ = scaler.fit_transform(res)
+#     else:
+#         res_ = scaler.transform(res)
+#     res_aq = res_.copy()
+#     res_climate = res_.copy()
+#     if args.use_wind:
+#         res_aq[:, -1] = res[:, -1]
+#     res_aq = np.reshape(res_aq, (-1, b, c))
+#     res_climate = np.reshape(res_climate, (-1, b, c))
+#     trans_df = res_aq[:, :, :]
+#     idx_climate = len(args.features)
+#     climate_df = res_climate[
+#         :, :, idx_climate:
+#     ]  # bo feature cuoi vi k quan tam huong gio
+#     del res_aq
+#     del res_climate
+#     del res
+#     return trans_df, climate_df, scaler
 
-
-def remove_outlier(x):
-    # remove 97th->100th percentile
-    pass
-
-
-def rolling(x):
-    res = []
-    for col in list(x.columns):
-        ans = x[col].rolling(2, min_periods=1)
-        res.append(ans)
-    # pdb.set_trace()
-    ans = np.array(res)
-    return ans  # rolling va lay mean trong 3 timeframe gan nhat
-
-
-from sklearn.impute import KNNImputer, SimpleImputer
-
-
-def preprocess_pipeline(df, args):
+def preprocess_pipeline(df, args, scaler=None):
     # 800,35,17
-    scaler = MinMaxScaler((-1, 1))
     # import pdb; pdb.set_trace()
     # breakpoint()
     (a, b, c) = df.shape
@@ -85,29 +108,42 @@ def preprocess_pipeline(df, args):
     for i in range(c):
         threshold = np.percentile(res[:, i], 95)
         res[:, i] = np.where(res[:, i] > threshold, threshold, res[:, i])
-    res_ = scaler.fit_transform(res)
+    # res = np.reshape(res, (-1, b,c))
+    # breakpoint()
+    if scaler == None:
+        # scaler = MinMaxScaler((-1, 1))
+        scaler = MinMaxScaler()
+        res_ = scaler.fit_transform(res)
+    else:
+        res_ = scaler.transform(res)
+    # res_ = scaler.fit_transform(res)
+    # gan lai wind_angle cho scaler
     res_aq = res_.copy()
     res_climate = res_.copy()
     if args.use_wind:
-        res_aq[:, -1] = res[:, -1]
+        res_aq[:,-1] = res[:,-1]
 
     res_aq = np.reshape(res_aq, (-1, b, c))
     res_climate = np.reshape(res_climate, (-1, b, c))
+    # res = np.reshape(res, (-1, b, c))
     idx_climate = args.idx_climate
     trans_df = res_aq[:, :, :idx_climate]
-    climate_df = res_climate[
-        :, :, idx_climate:
-    ]  # bo feature cuoi vi k quan tam huong gio
+    # if args.dataset == "uk":
+    #     idx_climate =5 
+    # elif args.dataset == "hanoi":
+    #     idx_climate = 1
+    # elif args.dataset == "beijing":
+    #     idx_climate = 7
+    # else:
+    #     raise ValueError("Dataset not supported")
+    climate_df = res_climate[:, :, idx_climate:] # bo feature cuoi vi k quan tam huong gio
     del res_aq
-    del res_climate
+    del res_climate 
     del res
     return trans_df, climate_df, scaler
 
 
 def get_list_file(folder_path):
-    from os import listdir
-    from os.path import isfile, join
-
     onlyfiles = [f for f in listdir(folder_path) if isfile(join(folder_path, f))]
     return onlyfiles
 
@@ -122,6 +158,7 @@ def comb_df(file_path, pm_df, res):
     for file_name in list_file:
         df = pd.read_csv(file_path + file_name)
         # preprocess()
+        df = df.ffill()
         df = df.fillna(5)
         df = df[column]
         arr = df.to_numpy()
@@ -146,16 +183,16 @@ def location_arr(file_path, res):
 
 def get_data_array(args, file_path):
     columns1 = args.features
-    columns2 = args.climate_features
-    columns = columns1 + columns2
-    location_df = pd.read_csv(file_path + "location.csv")
+    location_df = pd.read_csv(f"{file_path}location.csv")
     station = location_df["station"].values
-    location = location_df.values[:, 1:]
+    location = location_df[["longitude", "latitude"]].values
     location_ = location[:, [1, 0]]
-
+    distance_matrix = get_distance_matrix(range(len(station)), location_)
+    distance_matrix += np.identity(len(station)) * 7
     list_arr = []
+    list_corr = []
     for i in station:
-        df = pd.read_csv(file_path + f"{i}.csv")[columns]
+        df = pd.read_csv(file_path + f"{i}.csv")[columns1]
         df = df.fillna(method="ffill")
         df = df.fillna(10)
         arr = df.astype(float).values
@@ -163,20 +200,28 @@ def get_data_array(args, file_path):
         list_arr.append(arr)
     list_arr = np.concatenate(list_arr, axis=1)
     pm2_5 = list_arr[:, :, 0]
+    # breakpoint()
     corr = pd.DataFrame(pm2_5).corr().values
+    for i in range(list_arr.shape[-1]):
+        pm2_5 = list_arr[:, :, i]
+        corr = pd.DataFrame(pm2_5).corr().values
+        list_corr.append(corr)
     del df
     del arr
     del location
     del location_df
-    return list_arr, location_, station, columns1, corr
+    return list_arr, location_, station, columns1, distance_matrix, list_corr
 
 
 def convert_2_point_coord_to_direction(coords1, coords2):
     x_dest, y_dest = coords1
     x_target, y_target = coords2
+
     deltaX = x_target - x_dest
     deltaY = y_target - y_dest
+
     degrees_temp = math.atan2(deltaX, deltaY) / math.pi * 180
+
     if degrees_temp < 0:
         degrees_final = 360 + degrees_temp
     else:
@@ -192,37 +237,40 @@ class AQDataSet(Dataset):
         data_df,
         climate_df,
         location_df,
-        list_train_station,
-        input_dim,
+        dist_matrix,
         test_station=None,
         test=False,
         valid=False,
-        corr=None,
+        corr_matrix=None,
         args=None,
     ) -> None:
         super().__init__()
         assert not (test and test_station == None), "pha test yeu cau nhap tram test"
         assert not (
-            test_station in list_train_station
+            test_station in args.train_station
         ), "tram test khong trong tram train"
-        self.list_cols_train_int = list_train_station
-        self.input_len = input_dim
+        self.list_cols_train_int = args.train_station
+        self.sequence_length = args.sequence_length
         self.test = test
         self.valid = valid
+        self.dist_matrix = dist_matrix
         self.data_df = data_df
         self.location = location_df
         self.climate_df = climate_df
-        self.n_st = len(list_train_station) - 1
-        self.corr = corr
+        self.window_size = 0
+        self.corr_matrix = corr_matrix
         self.train_cpt = args.train_pct
         self.valid_cpt = args.valid_pct
         self.test_cpt = args.test_pct
-        self.use_wind = args.use_wind
-
+        self.dist_threshold = args.dist_threshold
+        self.corr_threshold = args.corr_threshold
         idx_test = int(len(data_df) * (1 - self.test_cpt))
+
         # phan data train thi khong lien quan gi den data test
         self.X_train = data_df[:idx_test, :, :]
         self.climate_train = climate_df[:idx_test, :, :]
+        self.type_G = args.type_g
+        self.adj_ = np.where(dist_matrix < self.dist_threshold,1,0)
 
         # test data
         if self.test:
@@ -232,22 +280,13 @@ class AQDataSet(Dataset):
             lst_cols_input_test_int = list(
                 set(self.list_cols_train_int) - set([self.list_cols_train_int[-1]])
             )
-
             self.X_test = data_df[idx_test:, lst_cols_input_test_int, :]
-
-            lst_angle = self.get_list_angles(test_station, lst_cols_input_test_int)
-            if self.use_wind:
-                impact_wind = self.convert_wind(self.X_test, lst_angle)
-                self.X_test[:, :, -1] = impact_wind
-
-            self.l_test = self.get_reverse_distance_matrix(
+            self.l_test = self.get_inverse_distance_matrix(
                 lst_cols_input_test_int, test_station
             )
             self.Y_test = data_df[idx_test:, test_station, :]
             self.climate_test = climate_df[idx_test:, test_station, :]
-            self.G_test = self.get_adjacency_matrix(lst_cols_input_test_int)
-            if self.corr is not None:
-                self.corr_matrix_test = self.get_corr_matrix(lst_cols_input_test_int)
+            self.G_test,self.nb_adj = self.get_adjacency_matrix(lst_cols_input_test_int)
         elif self.valid:
             # phan data test khong lien quan gi data train
             test_station = int(test_station)
@@ -255,28 +294,14 @@ class AQDataSet(Dataset):
             lst_cols_input_test_int = list(
                 set(self.list_cols_train_int) - set([self.list_cols_train_int[-1]])
             )
-
             self.X_test = data_df[:idx_test, lst_cols_input_test_int, :]
-
-            lst_angle = self.get_list_angles(test_station, lst_cols_input_test_int)
             # convert data gio theo target station
-            if self.use_wind:
-                impact_wind = self.convert_wind(self.X_test, lst_angle)
-                self.X_test[:, :, -1] = impact_wind
-
-            self.l_test = self.get_reverse_distance_matrix(
+            self.l_test = self.get_inverse_distance_matrix(
                 lst_cols_input_test_int, test_station
             )
             self.Y_test = data_df[:idx_test, test_station, :]
             self.climate_test = climate_df[:idx_test, test_station, :]
-            self.G_test = self.get_adjacency_matrix(lst_cols_input_test_int)
-            if self.corr is not None:
-                self.corr_matrix_test = self.get_corr_matrix(lst_cols_input_test_int)
-
-    def get_distance(self, coords_1, coords_2):
-        import geopy.distance
-
-        return geopy.distance.geodesic(coords_1, coords_2).km
+            self.G_test,self.nb_adj = self.get_adjacency_matrix(lst_cols_input_test_int)
 
     def get_list_angles(self, test_stat, list_stat):
         target_stat = tuple(self.location[test_stat, :])
@@ -287,131 +312,129 @@ class AQDataSet(Dataset):
             angles.append(angle[1])
         return angles
 
-    def get_distance_matrix(self, list_col_train_int, target_station):
-        matrix = []
-        for i in list_col_train_int:
-            matrix.append(
-                self.get_distance(self.location[i], self.location[target_station])
+    def get_adjacency_matrix(self, list_station):
+        """
+        G1: Sử dụng IDW
+        G2: Sử dụng IDW và corr_threshold
+        G3: Sử dụng  IDW và dist_threshold
+        G4: Sử dụng IDW và 2 threshold
+        """
+
+        distance_adj = self.dist_matrix[np.ix_(list_station, list_station)]
+        nn_adj = self.adj_[np.ix_(list_station, list_station)]
+        inverse_distance_adj = 1 / distance_adj
+        if self.corr_matrix is not None:
+            corr_adj = self.corr_matrix[np.ix_(list_station, list_station)]
+        if self.type_G == 1:
+            inverse_distance_adj_ = inverse_distance_adj
+        elif self.type_G == 2:
+            inverse_distance_adj_ = np.where(
+                corr_adj > self.corr_threshold, inverse_distance_adj, 0
             )
-        res = np.array(matrix)
-        return res
+        elif self.type_G == 3:
+            inverse_distance_adj_ = np.where(
+                inverse_distance_adj > 1 / self.dist_threshold, inverse_distance_adj, 0
+            )
+        elif self.type_G == 4:
+            inverse_distance_adj_ = np.where(
+                corr_adj > self.corr_threshold, inverse_distance_adj, 0
+            )
+            inverse_distance_adj_ = np.where(
+                inverse_distance_adj_ > 1 / self.dist_threshold, inverse_distance_adj_, 0
+            )
+        adj = inverse_distance_adj_ / inverse_distance_adj_.sum(axis=-1, keepdims=True)
+        return adj,nn_adj
 
-    def get_corr_matrix(self, list_station):
-        # breakpoint()
-        # print(list_station)
-        # breakpoint()
-        corr_mtr = self.corr[np.ix_(list_station, list_station)]
-        corr_mtr_ = np.expand_dims(corr_mtr.sum(-1), -1)
-        corr_mtr_ = np.repeat(corr_mtr_, corr_mtr_.shape[0], -1)
-        corr_mtr = corr_mtr / corr_mtr_
-        corr_mtr = np.expand_dims(corr_mtr, 0)
-        corr_mtr = np.repeat(corr_mtr, self.input_len, 0)
-        return corr_mtr
+    def get_inverse_distance_matrix(self, list_station, target_station):
+        dis_vec = self.dist_matrix[np.ix_([target_station], list_station)]
+        inverse_dis_vec = 1 / dis_vec
+        inverse_dis_vec = inverse_dis_vec / inverse_dis_vec.sum(axis=-1)
+        return inverse_dis_vec
 
-    def get_reverse_distance_matrix(self, list_col_train_int, target_station):
-        distance_matrix = self.get_distance_matrix(list_col_train_int, target_station)
-        reverse_matrix = 1 / distance_matrix
-        return reverse_matrix / reverse_matrix.sum()
-
-    def get_adjacency_matrix(self, list_col_train_int, target_station_int=None):
-        adjacency_matrix = []
-        for j, i in enumerate(list_col_train_int):
-            distance_matrix = self.get_distance_matrix(list_col_train_int, i)
-            distance_matrix[j] += 15
-            reverse_dis = 1 / distance_matrix
-            adjacency_matrix.append(reverse_dis / reverse_dis.sum())
-        adjacency_matrix = np.array(adjacency_matrix)
-        adjacency_matrix = np.expand_dims(adjacency_matrix, 0)
-        adjacency_matrix = np.repeat(adjacency_matrix, self.input_len, 0)
-        return adjacency_matrix
-
-    def convert_wind(self, x, lst_angles):
-        def convert_to_score(modified_wind_angle):
-            if abs(modified_wind_angle) > 180:
-                diff_angle = 360 - abs(modified_wind_angle)
-            else:
-                diff_angle = abs(modified_wind_angle)
-            if diff_angle > 90:
-                impact = 0
-            else:
-                degree_rad = diff_angle * math.pi / 180
-                impact = math.cos(degree_rad)
-            return impact
-
-        wind_angle = x[:, :, -1]
-        wind_strength = x[:, :, -2]
-        shape_wind = wind_angle.shape
-        stat_angle_ = np.array(lst_angles)
-        stat_angle = np.tile(stat_angle_, (shape_wind[0], 1))
-        modified_wind_angle = wind_angle - stat_angle
-        modified_func = np.vectorize(convert_to_score)
-        # map_wind_to_impact = lambda x: convert_to_score(x)
-        impact_wind_angle = modified_func(modified_wind_angle)
-        return impact_wind_angle
 
     def __getitem__(self, index: int):
+        if self.test or self.valid:
+            idx = index
+        else:
+            n_samples = (
+                self.X_train.shape[0] - (self.sequence_length) - self.window_size
+            )
+            idx = index % n_samples
+            picked_target_station_int = self.list_cols_train_int[index // n_samples]
         list_G = []
         if self.test:
-            x = self.X_test[index : index + self.input_len, :]
-            y = self.Y_test[index + self.input_len - 1, 0]
+            x = self.X_test[idx : idx + self.sequence_length, :]
+            x_k = self.X_test[
+                idx + self.window_size : idx + self.sequence_length + self.window_size,
+                :,
+            ]
+            y = self.Y_test[idx + self.sequence_length - 1 + self.window_size, 0]
             G = self.G_test
+            nb_adj = self.nb_adj
             l = self.l_test
-            climate = self.climate_test[index + self.input_len - 1, :]
-            if self.corr is not None:
-                list_G = [G, self.corr_matrix_test]
-            else:
-                list_G = [G]
+            climate = self.climate_test[
+                idx + self.sequence_length - 1 + self.window_size, :
+            ]
+            list_G = [G]
         elif self.valid:
-            x = self.X_test[index : index + self.input_len, :]
-            y = self.Y_test[index + self.input_len - 1, 0]
+            x = self.X_test[idx : idx + self.sequence_length, :]
+            x_k = self.X_test[
+                idx + self.window_size : idx + self.sequence_length + self.window_size,
+                :,
+            ]
+            nb_adj = self.nb_adj
+            y = self.Y_test[idx + self.sequence_length - 1 + self.window_size, 0]
             G = self.G_test
             l = self.l_test
-            climate = self.climate_test[index + self.input_len - 1, :]
-            if self.corr is not None:
-                list_G = [G, self.corr_matrix_test]
-            else:
-                list_G = [G]
+            climate = self.climate_test[
+                idx + self.sequence_length - 1 + self.window_size, :
+            ]
+            list_G = [G]
         else:
             # chon 1 tram ngau  nhien trong 28 tram lam target tai moi sample
-            picked_target_station_int = random.choice(self.list_cols_train_int)
             lst_col_train_int = list(
                 set(self.list_cols_train_int) - set([picked_target_station_int])
             )
-            x = self.X_train[index : index + self.input_len, lst_col_train_int, :]
-
-            lst_angle = self.get_list_angles(
-                picked_target_station_int, lst_col_train_int
-            )
-            if self.use_wind:
-                impact_wind = self.convert_wind(x, lst_angle)
-                x[:, :, -1] = impact_wind
-
-            y = self.X_train[index + self.input_len - 1, picked_target_station_int, 0]
-            climate = self.climate_train[
-                index + self.input_len - 1, picked_target_station_int, :
+            x = self.X_train[idx : idx + self.sequence_length, lst_col_train_int, :]
+            x_k = self.X_train[
+                idx + self.window_size : idx + self.sequence_length + self.window_size,
+                lst_col_train_int,
+                :,
             ]
-            G = self.get_adjacency_matrix(lst_col_train_int, picked_target_station_int)
-            if self.corr is not None:
-                corr_matrix = self.get_corr_matrix(lst_col_train_int)
-                list_G = [G, corr_matrix]
-            else:
-                list_G = [G]
-            l = self.get_reverse_distance_matrix(
+
+            y = self.X_train[
+                idx + self.sequence_length - 1 + self.window_size,
+                picked_target_station_int,
+                0,
+            ]
+            climate = self.climate_train[
+                idx + self.sequence_length - 1 + self.window_size,
+                picked_target_station_int,
+                :,
+            ]
+            G,nb_adj = self.get_adjacency_matrix(lst_col_train_int)
+            list_G = [G]
+            l = self.get_inverse_distance_matrix(
                 lst_col_train_int, picked_target_station_int
             )
 
         sample = {
             "X": x,
             "Y": np.array([y]),
-            # "G": np.array(G),
             "l": np.array(l),
             "climate": climate,
+            "X_k": x_k,
+            "G2": nb_adj,
         }
         sample["G"] = np.stack(list_G, -1)
-        # breakpoint()
         return sample
 
     def __len__(self) -> int:
         if self.test:
-            return self.X_test.shape[0] - self.input_len
-        return self.X_train.shape[0] - (self.input_len)
+            return self.X_test.shape[0] - self.sequence_length - self.window_size
+        elif self.valid:
+            return self.X_train.shape[0] - (self.sequence_length) - self.window_size
+        else:
+            return (
+                self.X_train.shape[0] - (self.sequence_length) - self.window_size
+            ) * len(self.list_cols_train_int)

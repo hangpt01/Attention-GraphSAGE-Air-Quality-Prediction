@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import csv
+import os
 import torch
 import random
 
@@ -21,19 +24,57 @@ def load_model(model, checkpoint_path):
     model.load_state_dict(torch.load(checkpoint_path)["model_dict"])
 
 
-def visualize(train_loss, val_loss, args):
-    plt.plot(
-        train_loss["epoch"],
-        train_loss["train_loss"],
-        label="Training loss",
-        linestyle="-.",
-    )
-    plt.plot(
-        val_loss["epoch"], val_loss["val_loss"], label="Validation loss", linestyle=":"
-    )
-    plt.legend()
-    plt.label("Training vs validation loss")
-    plt.savefig(args.visualize_dir)
+def visualize_train_val(train_loss, val_loss, path="output/beijing/train_val_loss.jpg", unsup=False):
+	fig = plt.figure(figsize=(12,8))
+	ax = plt.axes()
+
+	df = pd.DataFrame(data={'train':train_loss, 'val': val_loss})
+
+	ax.plot(train_loss, label='train_loss')
+	ax.plot(val_loss, label='val_loss')
+	ax.legend()
+
+	# if unsup:
+	# 	# fig.savefig(vis_dir + 'train_val_visualize_upsup.png')
+	# 	# if config['log_wandb']:
+	# 	# 	wandb.Image({f'train_val_visualize_upsup_{target_station}.png': fig})
+    #     continue
+    # else :
+	fig.savefig(path)
+		# if config['log_wandb']:
+		# 	wandb.Image({f'train_val_visualize_sup_{target_station}.png': fig})
+	plt.close()
+
+def visualize_test_stat(train_loss, val_loss, path="output/beijing/train_val_loss.jpg", unsup=False):
+	fig = plt.figure(figsize=(12,8))
+	ax = plt.axes()
+
+	df = pd.DataFrame(data={'train':train_loss, 'val': val_loss})
+
+	ax.plot(train_loss, label='train_loss')
+	ax.plot(val_loss, label='val_loss')
+	ax.legend()
+
+	# if unsup:
+	# 	# fig.savefig(vis_dir + 'train_val_visualize_upsup.png')
+	# 	# if config['log_wandb']:
+	# 	# 	wandb.Image({f'train_val_visualize_upsup_{target_station}.png': fig})
+    #     continue
+    # else :
+	fig.savefig(path)
+		# if config['log_wandb']:
+		# 	wandb.Image({f'train_val_visualize_sup_{target_station}.png': fig})
+	plt.close()
+
+
+def save_result (df_res, path="output/beijing/result.csv"):
+    # groundtruth = get_data_groundtruth(config, target_station)
+    file_existed = os.path.exists(path)
+    # df.to_csv(path, mode='a', index=False, header=False)
+    if not file_existed:
+        df_res.to_csv(path, index=False)
+    else :
+        df_res.to_csv(path, mode='a', index=False, header=False)
 
 
 class EarlyStopping:
@@ -93,3 +134,11 @@ class EarlyStopping:
         checkpoints = {"model_dict": model.state_dict()}
         torch.save(checkpoints, self.path)
         self.val_loss_min = val_loss
+
+if __name__ == "__main__":
+    train_loss = [1,2,3,4,5,6,4,5]
+    val_loss = [2,3,5,4,5,6,4,5]
+    save_result(pd.DataFrame(train_loss))
+    save_result(pd.DataFrame(val_loss))
+
+
