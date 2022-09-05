@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument("--dist_threshold", type=float,default=20)
     parser.add_argument("--corr_threshold",type=float,default=0.7)
     parser.add_argument("--type_g",type=int,default=1,choices=[1,2,3,4])
-    parser.add_argument("--lr_decoder", default=0.00001, type=float)
+    parser.add_argument("--lr_decoder", default=0.00005, type=float)
     parser.add_argument("--delta_decoder", default=0, type=float)
     parser.add_argument("--n_layers_rnn", default=1, type=int)
     parser.add_argument(
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     )
 
     train_dataloader = DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4
     )
 
     # config["loss"] = 'mse'
@@ -271,7 +271,7 @@ if __name__ == "__main__":
                     valid_dataset,
                     batch_size=args.batch_size,
                     shuffle=False,
-                    num_workers=0,
+                    num_workers=4,
                 )
                 valid_loss_ = test_atten_decoder_fn(
                     stdgi,
@@ -323,7 +323,7 @@ if __name__ == "__main__":
             args=args,
         )
         test_dataloader = DataLoader(
-            test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0
+            test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4
         )
         list_prd, list_grt, _ = test_atten_decoder_fn(
             stdgi,
