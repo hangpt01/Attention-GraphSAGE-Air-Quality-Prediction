@@ -183,6 +183,7 @@ def location_arr(file_path, res):
 
 def get_data_array(args, file_path):
     columns1 = args.features
+    # print(columns1)
     location_df = pd.read_csv(f"{file_path}location.csv")
     station = location_df["station"].values
     location = location_df[["longitude", "latitude"]].values

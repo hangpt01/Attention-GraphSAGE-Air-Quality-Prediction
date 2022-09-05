@@ -24,7 +24,7 @@ def load_model(model, checkpoint_path):
     model.load_state_dict(torch.load(checkpoint_path)["model_dict"])
 
 
-def visualize_train_val(train_loss, val_loss, path="output/beijing/train_val_loss.jpg", unsup=False):
+def visualize_train_val(train_loss, val_loss, path="output/uk/train_val_loss.jpg", unsup=False):
 	fig = plt.figure(figsize=(12,8))
 	ax = plt.axes()
 
@@ -45,7 +45,7 @@ def visualize_train_val(train_loss, val_loss, path="output/beijing/train_val_los
 		# 	wandb.Image({f'train_val_visualize_sup_{target_station}.png': fig})
 	plt.close()
 
-def visualize_test_stat(train_loss, val_loss, path="output/beijing/train_val_loss.jpg", unsup=False):
+def visualize_test_stat(train_loss, val_loss, path="output/uk/train_val_loss.jpg", unsup=False):
 	fig = plt.figure(figsize=(12,8))
 	ax = plt.axes()
 
@@ -67,7 +67,7 @@ def visualize_test_stat(train_loss, val_loss, path="output/beijing/train_val_los
 	plt.close()
 
 
-def save_result (df_res, path="output/beijing/result.csv"):
+def save_result (df_res, path="output/uk/result.csv"):
     # groundtruth = get_data_groundtruth(config, target_station)
     file_existed = os.path.exists(path)
     # df.to_csv(path, mode='a', index=False, header=False)

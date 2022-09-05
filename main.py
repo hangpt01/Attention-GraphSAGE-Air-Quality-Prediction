@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument("--dist_threshold", type=float,default=20)
     parser.add_argument("--corr_threshold",type=float,default=0.7)
     parser.add_argument("--type_g",type=int,default=1,choices=[1,2,3,4])
-    parser.add_argument("--lr_decoder", default=0.00001, type=float)
+    parser.add_argument("--lr_decoder", default=0.00005, type=float)
     parser.add_argument("--delta_decoder", default=0, type=float)
     parser.add_argument("--n_layers_rnn", default=1, type=int)
     parser.add_argument(
